@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Journal | AI Emotion Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6c63ff;
+            --secondary: #a45deb;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card {
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            border: none;
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .journal-container {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background: #554fd8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 99, 255, 0.4);
+        }
+        
+        .emotion-badge {
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+        
+        .happy {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+        }
+        
+        .sad {
+            background: rgba(13, 110, 253, 0.2);
+            color: #0d6efd;
+        }
+        
+        .angry {
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+        }
+        
+        .surprise {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+        
+        .fear {
+            background: rgba(111, 66, 193, 0.2);
+            color: #6f42c1;
+        }
+        
+        .love {
+            background: rgba(232, 62, 140, 0.2);
+            color: #e83e8c;
+        }
+        
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stats-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .stats-label {
+            color: #6c757d;
+            font-weight: 600;
+        }
+        
+        .entry-card {
+            margin-bottom: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .entry-card:hover {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 2rem;
+        }
+        
+        .mood-emoji {
+            font-size: 2rem;
+            margin-right: 10px;
+        }
+        
+        .date-badge {
+            background: rgba(108, 99, 255, 0.1);
+            color: var(--primary);
+            padding: 6px 12px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+        }
+        
+        footer {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem 0;
+            margin-top: 3rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .floating-btn {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 6px 20px rgba(108, 99, 255, 0.4);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        .floating-btn:hover {
+            transform: translateY(-3px) rotate(90deg);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="fas fa-brain me-2"></i><span class="text-primary">Mood</span>Journal
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="fas fa-home me-1"></i> Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-history me-1"></i> History</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-chart-line me-1"></i> Insights</a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <button class="btn btn-outline-primary me-2"><i class="fas fa-user-plus me-1"></i> Sign Up</button>
+                    <button class="btn btn-primary"><i class="fas fa-sign-in-alt me-1"></i> Login</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="display-4 fw-bold">Track Your Emotions with AI</h1>
+                    <p class="lead">Understand your mood patterns with our AI-powered emotion analysis</p>
+                </div>
+                <div class="col-md-4 text-center">
+                    <img src="https://images.unsplash.com/photo-1596727147705-61a532a659bd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80" alt="Mental Wellbeing" class="img-fluid rounded-circle" style="max-height: 250px;">
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-lg-8">
+                <!-- Journal Form -->
+                <div class="journal-container mb-4">
+                    <h3 class="mb-4"><i class="fas fa-pencil-alt me-2"></i>How are you feeling today?</h3>
+                    <form id="journalForm">
+                        <div class="mb-3">
+                            <label for="journalEntry" class="form-label">Your Journal Entry</label>
+                            <textarea class="form-control" id="journalEntry" rows="5" placeholder="Write about your day, your feelings, or anything on your mind..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-robot me-2"></i>Analyze My Emotions
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Emotion Results -->
+                <div class="journal-container mb-4 d-none" id="emotionResults">
+                    <h3 class="mb-4"><i class="fas fa-chart-pie me-2"></i>Emotion Analysis</h3>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>Detected Emotions:</h5>
+                            <div id="emotionBadges">
+                                <!-- Emotion badges will be inserted here -->
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Dominant Emotion:</h5>
+                            <div class="d-flex align-items-center mt-2">
+                                <span class="mood-emoji" id="dominantEmoji">😊</span>
+                                <h2 class="mb-0" id="dominantEmotion">Happy</h2>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h5 class="mb-3">Emotion Intensity:</h5>
+                    <div class="chart-container">
+                        <canvas id="emotionChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Past Entries -->
+                <div class="journal-container">
+                    <h3 class="mb-4"><i class="fas fa-history me-2"></i>Recent Entries</h3>
+                    <div id="pastEntries">
+                        <!-- Sample entry -->
+                        <div class="entry-card card p-3 mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span class="date-badge"><i class="fas fa-clock me-1"></i>Today, 3:45 PM</span>
+                                <span class="mood-emoji">😊</span>
+                            </div>
+                            <p class="mt-2">Had a great day today! The weather was beautiful and I got to spend time with friends. We went hiking and had a picnic. Feeling grateful for these moments.</p>
+                            <div>
+                                <span class="emotion-badge happy">Happy 92%</span>
+                                <span class="emotion-badge love">Love 85%</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Sample entry -->
+                        <div class="entry-card card p-3 mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span class="date-badge"><i class="fas fa-clock me-1"></i>Yesterday, 6:30 PM</span>
+                                <span class="mood-emoji">😔</span>
+                            </div>
+                            <p class="mt-2">Felt a bit overwhelmed with work today. Need to practice better time management. Also, I need to learn to say no to additional responsibilities when I'm already stretched thin.</p>
+                            <div>
+                                <span class="emotion-badge sad">Sad 78%</span>
+                                <span class="emotion-badge fear">Fear 45%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Stats -->
+                <div class="card stats-card mb-4">
+                    <i class="fas fa-book-open fa-2x text-primary mb-3"></i>
+                    <h3 class="stats-number">27</h3>
+                    <p class="stats-label">Journal Entries</p>
+                </div>
+                
+                <div class="card stats-card mb-4">
+                    <i class="fas fa-smile fa-2x text-primary mb-3"></i>
+                    <h3 class="stats-number">14</h3>
+                    <p class="stats-label">Positive Days</p>
+                </div>
+                
+                <div class="card stats-card mb-4">
+                    <i class="fas fa-chart-line fa-2x text-primary mb-3"></i>
+                    <h3 class="stats-number">5</h3>
+                    <p class="stats-label">Mood Patterns</p>
+                </div>
+
+                <!-- Mood Trends -->
+                <div class="journal-container">
+                    <h4 class="mb-3"><i class="fas fa-chart-line me-2"></i>Mood Trends</h4>
+                    <div class="chart-container">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Tips -->
+                <div class="journal-container">
+                    <h4 class="mb-3"><i class="fas fa-lightbulb me-2"></i>Wellness Tips</h4>
+                    <div class="card bg-light mb-2">
+                        <div class="card-body">
+                            <h6><i class="fas fa-walking me-2"></i>Take a walk in nature</h6>
+                            <p class="small mb-0">Even 15 minutes outside can improve your mood</p>
+                        </div>
+                    </div>
+                    <div class="card bg-light mb-2">
+                        <div class="card-body">
+                            <h6><i class="fas fa-medal me-2"></i>Practice gratitude</h6>
+                            <p class="small mb-0">List three things you're grateful for today</p>
+                        </div>
+                    </div>
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6><i class="fas fa-heart me-2"></i>Connect with others</h6>
+                            <p class="small mb-0">Reach out to a friend or loved one</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="floating-btn" onclick="document.getElementById('journalEntry').focus()">
+        <i class="fas fa-plus"></i>
+    </div>
+
+    <footer>
+        <div class="container text-center">
+            <p class="mb-0">© 2023 MoodJournal | AI-Powered Emotion Tracker</p>
+            <p class="small text-muted">Frontend demo - Backend integration required for full functionality</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // DOM Elements
+        const journalForm = document.getElementById('journalForm');
+        const emotionResults = document.getElementById('emotionResults');
+        const emotionBadges = document.getElementById('emotionBadges');
+        const dominantEmotion = document.getElementById('dominantEmotion');
+        const dominantEmoji = document.getElementById('dominantEmoji');
+        
+        // Chart.js initialization
+        const emotionCtx = document.getElementById('emotionChart').getContext('2d');
+        const trendCtx = document.getElementById('trendChart').getContext('2d');
+        
+        // Emotion chart
+        const emotionChart = new Chart(emotionCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Happy', 'Sad', 'Angry', 'Surprise', 'Fear', 'Love'],
+                datasets: [{
+                    label: 'Emotion Intensity (%)',
+                    data: [0, 0, 0, 0, 0, 0],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.7)',
+                        'rgba(13, 110, 253, 0.7)',
+                        'rgba(220, 53, 69, 0.7)',
+                        'rgba(255, 193, 7, 0.7)',
+                        'rgba(111, 66, 193, 0.7)',
+                        'rgba(232, 62, 140, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(13, 110, 253, 1)',
+                        'rgba(220, 53, 69, 1)',
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(111, 66, 193, 1)',
+                        'rgba(232, 62, 140, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+        
+        // Trend chart
+        const trendChart = new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Happiness Level',
+                    data: [65, 59, 80, 81, 56, 72, 90],
+                    fill: true,
+                    backgroundColor: 'rgba(108, 99, 255, 0.2)',
+                    borderColor: 'rgba(108, 99, 255, 1)',
+                    tension: 0.4,
+                    pointBackgroundColor: 'rgba(108, 99, 255, 1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+        
+        // Form submission handler
+        journalForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const journalText = document.getElementById('journalEntry').value;
+            
+            if (journalText.trim() === '') {
+                alert('Please write something in your journal entry');
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = journalForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="loading"></span> Analyzing with AI...';
+            submitBtn.disabled = true;
+            
+            // Simulate API delay
+            setTimeout(() => {
+                // Generate random emotion scores for demo purposes
+                const emotions = {
+                    happy: Math.floor(Math.random() * 50) + 50,
+                    sad: Math.floor(Math.random() * 30),
+                    angry: Math.floor(Math.random() * 20),
+                    surprise: Math.floor(Math.random() * 40),
+                    fear: Math.floor(Math.random() * 25),
+                    love: Math.floor(Math.random() * 60)
+                };
+                
+                // Update the emotion chart
+                emotionChart.data.datasets[0].data = [
+                    emotions.happy,
+                    emotions.sad,
+                    emotions.angry,
+                    emotions.surprise,
+                    emotions.fear,
+                    emotions.love
+                ];
+                emotionChart.update();
+                
+                // Update emotion badges
+                emotionBadges.innerHTML = '';
+                for (const [emotion, score] of Object.entries(emotions)) {
+                    if (score > 10) {
+                        const badge = document.createElement('span');
+                        badge.className = `emotion-badge ${emotion}`;
+                        badge.textContent = `${emotion.charAt(0).toUpperCase() + emotion.slice(1)} ${score}%`;
+                        emotionBadges.appendChild(badge);
+                    }
+                }
+                
+                // Determine dominant emotion
+                let dominant = '';
+                let highestScore = 0;
+                
+                for (const [emotion, score] of Object.entries(emotions)) {
+                    if (score > highestScore) {
+                        highestScore = score;
+                        dominant = emotion;
+                    }
+                }
+                
+                // Update dominant emotion display
+                dominantEmotion.textContent = dominant.charAt(0).toUpperCase() + dominant.slice(1);
+                
+                // Set appropriate emoji
+                const emojiMap = {
+                    happy: '😊',
+                    sad: '😔',
+                    angry: '😠',
+                    surprise: '😲',
+                    fear: '😨',
+                    love: '❤️'
+                };
+                
+                dominantEmoji.textContent = emojiMap[dominant] || '😊';
+                
+                // Show results section
+                emotionResults.classList.remove('d-none');
+                
+                // Reset form button
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                
+                // Add to past entries (at the top)
+                const entryHTML = `
+                    <div class="entry-card card p-3 mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="date-badge"><i class="fas fa-clock me-1"></i>Just now</span>
+                            <span class="mood-emoji">${emojiMap[dominant]}</span>
+                        </div>
+                        <p class="mt-2">${journalText.substring(0, 100)}${journalText.length > 100 ? '...' : ''}</p>
+                        <div>
+                            ${Object.entries(emotions)
+                                .filter(([_, score]) => score > 10)
+                                .map(([emotion, score]) => `<span class="emotion-badge ${emotion}">${emotion.charAt(0).toUpperCase() + emotion.slice(1)} ${score}%</span>`)
+                                .join('')}
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('pastEntries').innerHTML = entryHTML + document.getElementById('pastEntries').innerHTML;
+                
+                // Clear the textarea
+                document.getElementById('journalEntry').value = '';
+                
+                // Scroll to results
+                emotionResults.scrollIntoView({ behavior: 'smooth' });
+                
+            }, 2000); // Simulate 2 second API delay
+        });
+        
+        // Initialize with some sample data for charts
+        emotionChart.data.datasets[0].data = [75, 25, 10, 30, 15, 60];
+        emotionChart.update();
+    </script>
+</body>
+</html>
